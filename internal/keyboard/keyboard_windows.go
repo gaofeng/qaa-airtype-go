@@ -11,6 +11,7 @@ import (
 const (
 	VK_SHIFT             = 0x10
 	VK_INSERT            = 0x2D
+	VK_RETURN            = 0x0D
 	KEYEVENTF_KEYUP      = 0x0002
 	KEYEVENTF_SCANCODE   = 0x0008
 	KEYEVENTF_EXTENDEDKEY = 0x0001
@@ -35,6 +36,21 @@ func Paste() error {
 	time.Sleep(20 * time.Millisecond)
 
 	keybdEvent.Call(uintptr(VK_SHIFT), shiftScan, uintptr(KEYEVENTF_SCANCODE|KEYEVENTF_KEYUP), 0)
+
+	return nil
+}
+
+func Enter() error {
+	user32 := windows.NewLazySystemDLL("user32.dll")
+	keybdEvent := user32.NewProc("keybd_event")
+	mapVirtualKeyW := user32.NewProc("MapVirtualKeyW")
+
+	enterScan, _, _ := mapVirtualKeyW.Call(uintptr(VK_RETURN), uintptr(MAPVK_VK_TO_VSC))
+
+	keybdEvent.Call(uintptr(VK_RETURN), enterScan, uintptr(KEYEVENTF_SCANCODE), 0)
+	time.Sleep(20 * time.Millisecond)
+
+	keybdEvent.Call(uintptr(VK_RETURN), enterScan, uintptr(KEYEVENTF_SCANCODE|KEYEVENTF_KEYUP), 0)
 
 	return nil
 }

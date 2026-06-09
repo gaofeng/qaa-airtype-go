@@ -99,9 +99,14 @@
         });
         function handleSend() {
             const text = input.value.trim();
-            if (!text) return;
+            if (!text) {
+                sendRequest("");
+                input.focus();
+                return;
+            }
             saveToHistory(text);
             sendRequest(text);
+            input.focus();
         }
         function handleClear() {
             input.value = '';
