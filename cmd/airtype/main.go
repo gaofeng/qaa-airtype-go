@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/QAA-Tools/qaa-airtype/go/internal/clipboard"
 	"github.com/QAA-Tools/qaa-airtype/go/internal/config"
 	"github.com/QAA-Tools/qaa-airtype/go/internal/keyboard"
 	"github.com/QAA-Tools/qaa-airtype/go/internal/network"
@@ -191,9 +192,22 @@ func typeHandler(c *gin.Context) {
 	// 等待用户在手机端点发送后把焦点切回电脑端输入框
 	time.Sleep(100 * time.Millisecond)
 
-	if err := keyboard.TypeText(req.Text); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"success": false})
-		return
+	cfg := getRuntimeConfig()
+	if cfg.TextMode == "clipboard" {
+		if err := clipboard.Write(req.Text); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false})
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+		if err := keyboard.Paste(); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false})
+			return
+		}
+	} else {
+		if err := keyboard.TypeText(req.Text); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
@@ -255,6 +269,7 @@ func configHandler(c *gin.Context) {
 		IP                *string  `json:"ip"`
 		Sensitivity       *float64 `json:"sensitivity"`
 		ScrollSensitivity *float64 `json:"scrollSensitivity"`
+		TextMode          *string  `json:"textMode"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid config"})
@@ -278,6 +293,12 @@ func configHandler(c *gin.Context) {
 		cfg.Sensitivity = 1.5
 	} else if cfg.Sensitivity > 5 {
 		cfg.Sensitivity = 5
+	}
+	if req.TextMode != nil {
+		cfg.TextMode = *req.TextMode
+	}
+	if cfg.TextMode != "sendinput" && cfg.TextMode != "clipboard" {
+		cfg.TextMode = "sendinput"
 	}
 
 	if err := config.Save(cfg); err != nil {
