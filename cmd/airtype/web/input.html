@@ -79,6 +79,7 @@
         }
         .touchpad {
             padding: 16px;
+            position: relative;
         }
         .touchpad-inner {
             width: 100%;
@@ -86,12 +87,76 @@
             border: 1px dashed #d1d1d6;
             border-radius: 10px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
             color: #8e8e93;
             font-size: 15px;
             line-height: 1.6;
+            gap: 6px;
+        }
+        .touchpad-fullscreen-toggle {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            z-index: 5;
+            user-select: none;
+            -webkit-user-select: none;
+            color: #888;
+        }
+        body.landscape {
+            padding: 0 max(0px, env(safe-area-inset-right)) 0 max(0px, env(safe-area-inset-left));
+            gap: 0;
+            background: #000;
+        }
+        body.landscape textarea,
+        body.landscape .history-container,
+        body.landscape #status,
+        body.landscape .send-bar {
+            display: none;
+        }
+        body.landscape .pad-area {
+            height: 100%;
+            flex: 1 1 100%;
+            gap: 0;
+            grid-template-columns: minmax(0, 1fr) 48px;
+            border-radius: 0;
+        }
+        body.landscape .surface {
+            border-radius: 0;
+            border: none;
+            box-shadow: none;
+        }
+        body.landscape .touchpad {
+            padding: 12px;
+            background: #1c1c1e;
+            border-radius: 0;
+        }
+        body.landscape .touchpad-inner {
+            border-color: #3a3a3c;
+            color: #636366;
+            font-size: 13px;
+        }
+        body.landscape #scrollZone {
+            background: #2c2c2e;
+            border-radius: 0;
+        }
+        body.landscape .scroll-grip span {
+            background: #636366;
+        }
+        body.landscape .touchpad-fullscreen-toggle {
+            background: rgba(255,255,255,0.08);
+            color: #888;
         }
         .scroll-grip {
             display: flex;
@@ -260,6 +325,7 @@
 
     <div class="pad-area">
         <div id="touchpad" class="surface touchpad" aria-label="虚拟触摸板">
+            <div class="touchpad-fullscreen-toggle" onclick="toggleFullscreen()">⛶</div>
             <div class="touchpad-inner">虚拟触摸板</div>
         </div>
         <div id="scrollZone" class="surface" aria-label="触摸滚动区">
@@ -344,6 +410,7 @@
             connectScrollSocket();
             connectTouchpadSocket();
             updateKeyboardOffset();
+            initLandscapeDetection();
         };
 
         let keyboardOffsetRAF = null;
@@ -371,6 +438,28 @@
 
             const offset = Math.max(0, layoutHeight - vv.height);
             root.style.setProperty('--keyboard-offset', offset + 'px');
+        }
+
+        let landscapeOverride = false;
+
+        function initLandscapeDetection() {
+            const mql = window.matchMedia('(orientation: landscape)');
+            applyLandscape(mql.matches);
+            mql.addEventListener('change', e => {
+                landscapeOverride = false;
+                applyLandscape(e.matches);
+            });
+        }
+
+        function applyLandscape(on) {
+            document.body.classList.toggle('landscape', on);
+            const toggle = document.querySelector('.touchpad-fullscreen-toggle');
+            if (toggle) toggle.textContent = on ? '✕' : '⛶';
+        }
+
+        function toggleFullscreen() {
+            landscapeOverride = !landscapeOverride;
+            applyLandscape(landscapeOverride);
         }
 
         input.addEventListener("keydown", function(event) {
